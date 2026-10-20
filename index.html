@@ -848,6 +848,10 @@ function resize() {
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
 }
 window.addEventListener('resize', resize); resize();
+// phones change the visible height without always sending 'resize' (toolbars, rotation, embedded views):
+// watch the canvas itself so its pixels never get stretched
+try { new ResizeObserver(resize).observe(cv); } catch (e) {}
+if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
 
 // ---------- params ----------
 const P = Object.assign({}, DEFAULTS);
@@ -1506,6 +1510,7 @@ function dust(n) {
 // ---------- loop ----------
 let last = performance.now(), acc = 0;
 function frame(now) {
+  if (cv.clientWidth !== W || cv.clientHeight !== H) resize();
   let dt = Math.min(0.05, (now - last) / 1000); last = now;
   let simDt = dt;
   if (slowT > 0) { slowT -= dt; simDt = dt * (slowT > 0.2 ? 0.3 : 0.3 + (0.2 - slowT) / 0.2 * 0.7); }
