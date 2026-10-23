@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>宙がえり試験場</title>
 <meta name="description" content="空気の力で跳ぶ試作車を操って、ジャンプ1回でどこまで飛べるか。穴を越え、宙がえりを決めて、きれいに着地しよう。">
 <meta name="theme-color" content="#0A0F1A">
@@ -203,6 +203,9 @@ h1{font-family:var(--f-display);font-weight:400;font-size:clamp(30px,8vw,42px);l
 .modeBtn.primary .d{color:#3a3216;}
 .modeBtn.primary .b{color:var(--night);font-weight:700;}
 .modeBtn.primary .b:empty{display:none;}
+/* no zoom on quick repeated taps (iOS double-tap zoom) */
+html,body,#cv,.half,#btnRow,.pad,#hud,#speedo{touch-action:none;}
+button,.btn,.modeBtn,.startBtn,.iconbtn{touch-action:manipulation;}
 #tally .newTag{color:#FFC92E;font-weight:700;font-size:.85em;margin-left:4px;}
 #tally .sub{color:var(--dim,#8A94A8);font-size:.85em;margin-left:4px;}
 .btn.share{border-color:rgba(255,201,46,.55);color:#FFC92E;font-size:14px;padding:10px 12px;}
@@ -1209,16 +1212,16 @@ function landmarkOf(h) { let k = -1; for (let i = 0; i < HEIGHTS.length; i++) if
 function shareLines() {
   const s = shareInfo; if (!s) return null;
   const h = Math.round(s.maxH), lm = landmarkOf(s.maxH);
-  const hTxt = `最高 ${h}m${lm ? `（${lm}超え）` : ''}`;
-  const fTxt = s.flips ? `宙がえり ${s.flips}回` : '';
+  const hTxt = `最高${h}m${lm ? `（${lm}超え）` : ''}`;
+  const fTxt = s.flips ? `宙がえり${s.flips}回` : '';
   let head, sub;
-  if (s.mode === 'free') { head = `自由に飛んで ${fmtM(s.d)}m`; sub = [hTxt, fTxt].filter(Boolean).join('／'); }
+  if (s.mode === 'free') { head = `自由に飛んで${fmtM(s.d)}m`; sub = [hTxt, fTxt].filter(Boolean).join('／'); }
   else if (!s.jumped) { head = '台にたどり着けなかった…'; sub = ''; }
   else if (s.failed) { head = '着地で転倒…記録なし'; sub = [hTxt, fTxt].filter(Boolean).join('／'); }
-  else { head = `${fmtM(s.d)}m 飛んだ！${s.isBest ? '（自己ベスト）' : ''}`; sub = [`${s.zone}まで到達`, hTxt, fTxt].filter(Boolean).join('／'); }
+  else { head = `${fmtM(s.d)}m飛んだ！${s.isBest ? '（自己ベスト）' : ''}`; sub = [`${s.zone}まで到達`, hTxt, fTxt].filter(Boolean).join('／'); }
   return { head, sub };
 }
-function shareText() { const l = shareLines(); return `宙がえり試験場で ${l.head}${l.sub ? '\n' + l.sub : ''}\n#${HASHTAG}`; }
+function shareText() { const l = shareLines(); return `宙がえり試験場で${l.head}${l.sub ? '\n' + l.sub : ''}\n#${HASHTAG}`; }
 function postToX() {
   if (!shareInfo) return;
   const u = `https://x.com/intent/post?text=${encodeURIComponent(shareText())}&url=${encodeURIComponent(gameUrl())}`;
@@ -2246,6 +2249,18 @@ function bindPad(el, set) {
 }
 bindPad($('padL'), input.tL); bindPad($('padR'), input.tR); bindPad($('padF'), input.tF);
 document.addEventListener('contextmenu', e => e.preventDefault());
+// stop the browser zooming in when buttons are tapped fast (double-tap zoom, pinch)
+{
+  let lastEnd = 0;
+  document.addEventListener('touchend', e => {
+    const now = e.timeStamp || performance.now();
+    const onButton = e.target && e.target.closest && e.target.closest('button');
+    if ((state === 'play' || !onButton) && now - lastEnd < 400) e.preventDefault();
+    lastEnd = now;
+  }, { passive: false });
+  document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+  for (const t of ['gesturestart', 'gesturechange']) document.addEventListener(t, e => e.preventDefault(), { passive: false });
+}
 
 function openSheet(open) {
   $('stageSheet').hidden = !open;
